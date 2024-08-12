@@ -1,7 +1,7 @@
 *.dll
 [Bb]in/
 [Oo]bj/
-
+Logs/
 TestResults
 
 *.suo
