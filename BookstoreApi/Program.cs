@@ -11,8 +11,15 @@ builder.Services.AddCors(p => p.AddPolicy("corsapp", builder =>
     builder.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
 }));
 
-Log.Logger = new LoggerConfiguration().MinimumLevel.Debug().WriteTo.Console().WriteTo
-  .File("Logs/BookstoreLog.txt", rollingInterval: RollingInterval.Day).CreateLogger();
+
+//Configure Serilog
+Log.Logger = new LoggerConfiguration()
+        .MinimumLevel.Debug()
+        .WriteTo.Console()
+        .WriteTo.File("Logs/BookstoreLog.txt", rollingInterval: RollingInterval.Day)
+        .CreateLogger();
+
+builder.Host.UseSerilog();  // Use Serilog for logging
 
 
 //Add services to the container.

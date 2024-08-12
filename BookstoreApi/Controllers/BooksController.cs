@@ -13,9 +13,13 @@ namespace BookstoreApi.Controllers
     {
         private readonly BookstoreContext bscontext;
 
-        public BooksController(BookstoreContext context)
+        // Inject the logger in addition to the context
+        private readonly ILogger<BooksController> _logger;
+
+        public BooksController(BookstoreContext context, ILogger<BooksController> logger)
         {
             bscontext = context;
+            _logger = logger;
         }
 
         /// <summary>
@@ -37,12 +41,13 @@ namespace BookstoreApi.Controllers
                     .Include(b => b.Author)
                     .Include(b => b.Genre)
                     .ToListAsync();
-
+                _logger.LogInformation("Retrieved all books successfully.");
                 return Ok(books);
             }
             catch (Exception ex)
             {
-                // Log the exception (omitted for brevity)
+                // Log the exception 
+                _logger.LogError(ex, "An error occurred while retrieving the books.");
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the books.");
             }
         }
@@ -68,15 +73,17 @@ namespace BookstoreApi.Controllers
 
                 if (book == null)
                 {
+                    _logger.LogWarning("Book with ID {Id} not found.", id);
                     // Return 404 if the book is not found
                     return NotFound();
                 }
-
+                _logger.LogInformation("Retrieved book with ID {Id} successfully.", id);
                 return Ok(book);
             }
             catch (Exception ex)
             {
-                // Log the exception (omitted for brevity)
+                // Log the exception 
+                _logger.LogError(ex, "An error occurred while retrieving the book with ID {Id}.", id);
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the book.");
             }
         }
@@ -102,6 +109,7 @@ namespace BookstoreApi.Controllers
                 var book = await bscontext.Books.FindAsync(id);
                 if (book == null)
                 {
+                    _logger.LogWarning("Attempted to delete book with ID {Id}, but it was not found.", id);
                     // Return 404 if the book is not found
                     return NotFound(new { error = "Book not found" });
                 }
@@ -109,11 +117,13 @@ namespace BookstoreApi.Controllers
                 bscontext.Books.Remove(book);
                 await bscontext.SaveChangesAsync();
 
+                _logger.LogInformation("Book with ID {Id} deleted successfully.", id);
                 // Return 204 for a successful deletion with no content
                 return NoContent();
             }
             catch (System.Exception ex)
             {
+                _logger.LogError(ex, "An error occurred while deleting the book with ID {Id}.", id);
                 // Return 500 for an internal server error with the exception message
                 return StatusCode(500, new { error = ex.Message });
             }
@@ -137,27 +147,37 @@ namespace BookstoreApi.Controllers
         {
             if (book == null)
             {
+                _logger.LogWarning("Attempted to create a book but the book object was null.");
+
                 return BadRequest("Book is null.");
             }
 
-            // Convert model to entity
-            var bookEntity = new BookstoreApi.Entities.Book
+            try
             {
-                title = book.title,
-                price = book.price,
-                publication_date = book.publication_date,
-                imageUrl = book.imageUrl,
-                author_id = book.author_id,
-                genre_id = book.genre_id
-            };
+                // Convert model to entity
+                var bookEntity = new BookstoreApi.Entities.Book
+                {
+                    title = book.title,
+                    price = book.price,
+                    publication_date = book.publication_date,
+                    imageUrl = book.imageUrl,
+                    author_id = book.author_id,
+                    genre_id = book.genre_id
+                };
 
-            bscontext.Books.Add(bookEntity);
-            await bscontext.SaveChangesAsync();
+                bscontext.Books.Add(bookEntity);
+                await bscontext.SaveChangesAsync();
 
-            // Optionally: Return the created book with its ID
-            book.book_id = bookEntity.book_id;
-
-            return CreatedAtAction(nameof(GetBooks), new { id = book.book_id }, book);
+                // Optionally: Return the created book with its ID
+                book.book_id = bookEntity.book_id;
+                _logger.LogInformation("Created new book with ID {Id}.", book.book_id);
+                return CreatedAtAction(nameof(GetBooks), new { id = book.book_id }, book);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while creating a new book.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the book.");
+            }
         }
 
         // [HttpPut("{id}")]
@@ -266,19 +286,24 @@ namespace BookstoreApi.Controllers
         {
             if (updateModel == null)
             {
+                _logger.LogWarning("Attempted to update a book but the update model was null.");
                 return BadRequest("Book data is null.");
             }
 
             // Check if the ID from the route matches the ID in the update data
             if (id != updateModel.book_id)
             {
+                _logger.LogWarning("ID in the URL ({Id}) does not match the ID in the update data ({UpdateId}).", id, updateModel.book_id);
                 return BadRequest("ID in the URL does not match the ID in the update data.");
             }
+
+
 
             // Find the existing book
             var existingBook = await bscontext.Books.FindAsync(id);
             if (existingBook == null)
             {
+                _logger.LogWarning("Book with ID {Id} not found for update.", id);
                 return NotFound();
             }
 
@@ -323,6 +348,7 @@ namespace BookstoreApi.Controllers
                 // Handle concurrency issues
                 if (!BookExists(id))
                 {
+                    _logger.LogWarning("Book with ID {Id} not found during update.", id);
                     return NotFound();
                 }
                 else
@@ -330,7 +356,7 @@ namespace BookstoreApi.Controllers
                     throw;
                 }
             }
-
+            _logger.LogInformation("Updated book with ID {Id} successfully.", id);
             return NoContent();
         }
 
