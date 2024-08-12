@@ -26,6 +26,11 @@ builder.Host.UseSerilog();  // Use Serilog for logging
 
 builder.Services.AddControllers();
 
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 104857600; // 100 MB limit for files
+});
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -51,6 +56,12 @@ builder.Services.AddDbContext<BookstoreContext>(
 
 var app = builder.Build();
 
+var uploadsFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+if (!Directory.Exists(uploadsFolderPath))
+{
+    Directory.CreateDirectory(uploadsFolderPath);
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -63,6 +74,10 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.UseCors("corsapp");
+
+
+
+app.UseStaticFiles(); // To serve static files like images
 
 app.MapControllers();
 

@@ -133,7 +133,8 @@ namespace BookstoreApi.Controllers
         /// <summary>
         /// Creates a new book in the bookstore.
         /// </summary>
-        /// <param name="book">The book object containing the details of the book to be created. It should include the title, price, publication date, image URL, author ID, and genre ID.</param>
+        /// <param name="model">The book object containing the details of the book to be created. It should include the title, price, publication date, image URL, author ID, and genre ID.</param>
+        /// <param name="image"> Image file of the book </param>
         /// <returns>
         /// An <see cref="ActionResult{Book}"/> representing the result of the create operation.
         /// If the creation is successful, a 201 Created response with the location of the new resource and the created book details will be returned.
@@ -142,36 +143,58 @@ namespace BookstoreApi.Controllers
         /// <response code="201">Created - The book was successfully created. The response includes the location of the new book and the created book details.</response>
         /// <response code="400">Bad Request - The book object provided in the request is null or invalid.</response>
         /// <response code="500">Internal Server Error - An error occurred while processing the request.</response>
+
+
+        // BooksController.cs
         [HttpPost]
-        public async Task<ActionResult<Book>> CreateBook(Book book)
+        public async Task<IActionResult> CreateBook([FromForm] BookCreateModel model, IFormFile? image)
         {
-            if (book == null)
+            if (model == null)
             {
                 _logger.LogWarning("Attempted to create a book but the book object was null.");
-
                 return BadRequest("Book is null.");
             }
 
             try
             {
-                // Convert model to entity
+                string? imageUrl = null;
+
+                _logger.LogWarning("Hereook but the book object was null.");
+
+                if (image != null && image.Length > 0)
+
+                {
+                    _logger.LogWarning("Hereook1 but the book object was null.");
+
+                    var fileName = Path.GetFileName(image.FileName);
+                    var filePath = Path.Combine("wwwroot", "images", fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await image.CopyToAsync(stream);
+                    }
+
+                    imageUrl = $"/images/{fileName}";
+                    //Console.WriteLine("HERE " + imageUrl + " filepath " + filePath + " fileName " + fileName);
+                    _logger.LogInformation("HERE, imageUrl");
+                }
+
                 var bookEntity = new BookstoreApi.Entities.Book
                 {
-                    title = book.title,
-                    price = book.price,
-                    publication_date = book.publication_date,
-                    imageUrl = book.imageUrl,
-                    author_id = book.author_id,
-                    genre_id = book.genre_id
+                    title = model.title,
+                    price = model.price,
+                    publication_date = model.publication_date,
+                    imageUrl = imageUrl,
+                    author_id = model.author_id,
+                    genre_id = model.genre_id
                 };
 
                 bscontext.Books.Add(bookEntity);
                 await bscontext.SaveChangesAsync();
 
-                // Optionally: Return the created book with its ID
-                book.book_id = bookEntity.book_id;
-                _logger.LogInformation("Created new book with ID {Id}.", book.book_id);
-                return CreatedAtAction(nameof(GetBooks), new { id = book.book_id }, book);
+                //model.book_id = bookEntity.book_id;
+                _logger.LogInformation("Created new book with ID {Id}.", bookEntity.book_id);
+                return CreatedAtAction(nameof(GetBook), new { id = bookEntity.book_id }, model);
             }
             catch (Exception ex)
             {
@@ -179,6 +202,48 @@ namespace BookstoreApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the book.");
             }
         }
+
+
+
+
+
+        //[HttpPost]
+        // public async Task<ActionResult<Book>> CreateBook(Book book)
+        // {
+        //     if (book == null)
+        //     {
+        //         _logger.LogWarning("Attempted to create a book but the book object was null.");
+
+        //         return BadRequest("Book is null.");
+        //     }
+
+        //     try
+        //     {
+        //         // Convert model to entity
+        //         var bookEntity = new BookstoreApi.Entities.Book
+        //         {
+        //             title = book.title,
+        //             price = book.price,
+        //             publication_date = book.publication_date,
+        //             imageUrl = book.imageUrl,
+        //             author_id = book.author_id,
+        //             genre_id = book.genre_id
+        //         };
+
+        //         bscontext.Books.Add(bookEntity);
+        //         await bscontext.SaveChangesAsync();
+
+        //         // Optionally: Return the created book with its ID
+        //         book.book_id = bookEntity.book_id;
+        //         _logger.LogInformation("Created new book with ID {Id}.", book.book_id);
+        //         return CreatedAtAction(nameof(GetBooks), new { id = book.book_id }, book);
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         _logger.LogError(ex, "An error occurred while creating a new book.");
+        //         return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the book.");
+        //     }
+        // }
 
         // [HttpPut("{id}")]
         // public async Task<IActionResult> UpdateBook(int id, [FromBody] Book book)
