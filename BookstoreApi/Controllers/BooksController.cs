@@ -335,19 +335,22 @@ namespace BookstoreApi.Controllers
         // ***************************
 
         /// <summary>
-        /// Updates an existing book.
+        /// Updates an existing book by ID. If an image is provided, the old image will be replaced with the new one.
         /// </summary>
-        /// <param name="id">The unique identifier of the book to be updated.</param>
-        /// <param name="updateModel">The model containing updated book data. Fields not provided will not be updated.</param>
-        /// <returns>A response indicating the result of the update operation.</returns>
+        /// <param name="id">The ID of the book to update.</param>
+        /// <param name="updateModel">The book data to update.</param>
+        /// <param name="image">Optional image file to update the book's image.</param>
+        /// <returns>An IActionResult indicating the result of the update operation.</returns>
+        /// <response code="204">The book was successfully updated.</response>
+        /// <response code="400">The request is invalid (e.g., the ID in the URL does not match the ID in the update data).</response>
+        /// <response code="404">The book with the specified ID was not found.</response>
+        /// <response code="500">An internal server error occurred.</response>
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(void), StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         [ApiExplorerSettings(GroupName = "v1")]
-        /// <param name="id">The unique identifier of the book to be updated.</param>
-        /// <param name="updateModel">The model containing updated book data.</param>
-        public async Task<IActionResult> UpdateBook(int id, [FromBody] BookUpdateModel updateModel)
+        public async Task<IActionResult> UpdateBook(int id, [FromForm] BookUpdateModel updateModel, IFormFile? image)
         {
             if (updateModel == null)
             {
@@ -388,9 +391,29 @@ namespace BookstoreApi.Controllers
                 existingBook.publication_date = updateModel.publication_date.Value;
             }
 
-            if (!string.IsNullOrEmpty(updateModel.imageUrl))
+            // Handle image update
+            if (image != null && image.Length > 0)
             {
-                existingBook.imageUrl = updateModel.imageUrl;
+                // Delete the old image if it exists
+                // if (!string.IsNullOrEmpty(existingBook.imageUrl))
+                // {
+                //     var oldFilePath = Path.Combine("wwwroot", existingBook.imageUrl.TrimStart('/'));
+                //     if (System.IO.File.Exists(oldFilePath))
+                //     {
+                //         System.IO.File.Delete(oldFilePath);
+                //     }
+                // }
+
+                // Save the new image
+                var fileName = Path.GetFileName(image.FileName);
+                var filePath = Path.Combine("wwwroot", "images", fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await image.CopyToAsync(stream);
+                }
+
+                existingBook.imageUrl = $"/images/{fileName}";
             }
 
             if (updateModel.author_id.HasValue)

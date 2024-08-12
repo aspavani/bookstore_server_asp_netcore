@@ -13,31 +13,79 @@ namespace BookstoreApi.Controllers
     {
         private readonly BookstoreContext bscontext;
 
-        public GenresController(BookstoreContext context)
+        // Inject the logger in addition to the context
+        private readonly ILogger<GenresController> _logger;
+
+        public GenresController(BookstoreContext context, ILogger<GenresController> logger)
         {
             bscontext = context;
+            _logger = logger;
         }
 
+        /// <summary>
+        /// Retrieves a list of all genres.
+        /// </summary>
+        /// <returns>Returns a list of genres.</returns>
+        /// <response code="200">Returns a list of all genres.</response>
+        /// <response code="500">An error occurred while retrieving the genres.</response>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Genre>>> GetGenres()
         {
-            return Ok(await bscontext.Genres.ToListAsync());
-        }
-
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Book>> GetGenre(int id)
-        {
-            var genre = await bscontext.Genres.FirstOrDefaultAsync(g => g.genre_id == id);
-
-            if (genre == null)
+            try
             {
-                // Return 404 if the book is not found
-                return NotFound();
-            }
+                var genres = await bscontext.Genres.ToListAsync();
 
-            return Ok(genre);
+                // Return 200 OK with the list of genres
+                return Ok(genres);
+            }
+            catch (System.Exception ex)
+            {
+                // Log the error and return 500 for internal server error
+                _logger.LogError(ex, "An error occurred while retrieving the genres.");
+                return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+            }
         }
 
+        /// <summary>
+        /// Retrieves a genre by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the genre.</param>
+        /// <returns>Returns the genre with the specified ID.</returns>
+        /// <response code="200">Returns the genre with the specified ID.</response>
+        /// <response code="404">If no genre is found with the specified ID.</response>
+        /// <response code="500">An error occurred while retrieving the genre.</response>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Genre>> GetGenre(int id)
+        {
+            try
+            {
+                var genre = await bscontext.Genres.FirstOrDefaultAsync(g => g.genre_id == id);
+
+                if (genre == null)
+                {
+                    // Return 404 if the genre is not found
+                    return NotFound();
+                }
+
+                // Return 200 OK with the genre
+                return Ok(genre);
+            }
+            catch (System.Exception ex)
+            {
+                // Log the error and return 500 for internal server error
+                _logger.LogError(ex, "An error occurred while retrieving the genre with ID {Id}.", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Deletes a genre by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the genre to be deleted.</param>
+        /// <returns>Returns a status code indicating the result of the delete operation.</returns>
+        /// <response code="204">Successfully deleted the genre.</response>
+        /// <response code="404">If no genre is found with the specified ID.</response>
+        /// <response code="500">An error occurred while deleting the genre.</response>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGenre(int id)
         {
@@ -63,6 +111,14 @@ namespace BookstoreApi.Controllers
             }
         }
 
+
+        /// <summary>
+        /// Creates a new genre.
+        /// </summary>
+        /// <param name="genre">The genre data to be created.</param>
+        /// <returns>Returns the created genre along with its unique identifier.</returns>
+        /// <response code="201">Successfully created the genre.</response>
+        /// <response code="400">If the provided genre data is null or invalid.</response>
         [HttpPost]
         public async Task<ActionResult<Genre>> CreateGenre(Genre genre)
         {
@@ -95,7 +151,16 @@ namespace BookstoreApi.Controllers
         }
 
 
-
+        /// <summary>
+        /// Updates an existing genre.
+        /// </summary>
+        /// <param name="id">The unique identifier of the genre to update.</param>
+        /// <param name="updateModel">The genre data to be updated.</param>
+        /// <returns>Returns a status code indicating the result of the update operation.</returns>
+        /// <response code="204">Successfully updated the genre.</response>
+        /// <response code="400">If the provided genre data is null or the ID in the URL does not match the ID in the data.</response>
+        /// <response code="404">If the genre with the specified ID is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGenre(int id, [FromBody] Genre updateModel)
         {
