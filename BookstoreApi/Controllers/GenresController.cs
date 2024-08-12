@@ -99,14 +99,17 @@ namespace BookstoreApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGenre(int id, [FromBody] Genre updateModel)
         {
+            Console.WriteLine("here2");
             if (updateModel == null)
             {
+                Console.WriteLine("here1");
                 return BadRequest("Genre data is null.");
             }
 
             // Check if the ID from the route matches the ID in the update data
             if (id != updateModel.genre_id)
             {
+                Console.WriteLine("here3" + updateModel.genre_id);
                 return BadRequest("ID in the URL does not match the ID in the update data.");
             }
 
@@ -122,6 +125,7 @@ namespace BookstoreApi.Controllers
 
             if (!string.IsNullOrEmpty(updateModel.genre_name))
             {
+                Console.WriteLine("here4" + updateModel.genre_name);
                 existingGenre.genre_name = updateModel.genre_name;
             }
 

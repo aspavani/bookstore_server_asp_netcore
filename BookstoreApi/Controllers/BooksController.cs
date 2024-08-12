@@ -18,26 +18,82 @@ namespace BookstoreApi.Controllers
             bscontext = context;
         }
 
+        /// <summary>
+        /// Retrieves a list of all books from the bookstore, including details about the author and genre.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="ActionResult{IEnumerable{Book}}"/> containing a list of books along with their associated authors and genres.
+        /// The response will be a JSON array of book objects with author and genre information.
+        /// </returns>
+        /// <response code="200">OK - Returns a list of books with author and genre details.</response>
+        /// <response code="500">Internal Server Error - An error occurred while processing the request.</response>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
         {
-            return Ok(await bscontext.Books.Include(b => b.Author).Include(b => b.Genre).ToListAsync());
+            // return Ok(await bscontext.Books.Include(b => b.Author).Include(b => b.Genre).ToListAsync());
+            try
+            {
+                var books = await bscontext.Books
+                    .Include(b => b.Author)
+                    .Include(b => b.Genre)
+                    .ToListAsync();
+
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (omitted for brevity)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the books.");
+            }
         }
 
+
+        /// <summary>
+        /// Retrieves a single book by its unique identifier, including details about the author and genre.
+        /// </summary>
+        /// <param name="id">The unique identifier of the book to retrieve.</param>
+        /// <returns>
+        /// An <see cref="ActionResult{Book}"/> containing the requested book with its associated author and genre details.
+        /// If the book is not found, a 404 Not Found response will be returned.
+        /// </returns>
+        /// <response code="200">OK - Returns the book with author and genre details.</response>
+        /// <response code="404">Not Found - The book with the specified ID was not found.</response>
+        /// <response code="500">Internal Server Error - An error occurred while processing the request.</response>
         [HttpGet("{id}")]
         public async Task<ActionResult<Book>> GetBook(int id)
         {
-            var book = await bscontext.Books.Include(b => b.Author).Include(b => b.Genre).FirstOrDefaultAsync(b => b.book_id == id);
-
-            if (book == null)
+            try
             {
-                // Return 404 if the book is not found
-                return NotFound();
-            }
+                var book = await bscontext.Books.Include(b => b.Author).Include(b => b.Genre).FirstOrDefaultAsync(b => b.book_id == id);
 
-            return Ok(book);
+                if (book == null)
+                {
+                    // Return 404 if the book is not found
+                    return NotFound();
+                }
+
+                return Ok(book);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (omitted for brevity)
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the book.");
+            }
         }
 
+
+        /// <summary>
+        /// Deletes a book by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the book to be deleted.</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> indicating the result of the delete operation.
+        /// If the book is not found, a 404 Not Found response will be returned.
+        /// If the deletion is successful, a 204 No Content response will be returned.
+        /// </returns>
+        /// <response code="204">No Content - The book was successfully deleted.</response>
+        /// <response code="404">Not Found - The book with the specified ID was not found.</response>
+        /// <response code="500">Internal Server Error - An error occurred while processing the request.</response>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBook(int id)
         {
@@ -63,6 +119,19 @@ namespace BookstoreApi.Controllers
             }
         }
 
+
+        /// <summary>
+        /// Creates a new book in the bookstore.
+        /// </summary>
+        /// <param name="book">The book object containing the details of the book to be created. It should include the title, price, publication date, image URL, author ID, and genre ID.</param>
+        /// <returns>
+        /// An <see cref="ActionResult{Book}"/> representing the result of the create operation.
+        /// If the creation is successful, a 201 Created response with the location of the new resource and the created book details will be returned.
+        /// If the provided book object is null, a 400 Bad Request response will be returned.
+        /// </returns>
+        /// <response code="201">Created - The book was successfully created. The response includes the location of the new book and the created book details.</response>
+        /// <response code="400">Bad Request - The book object provided in the request is null or invalid.</response>
+        /// <response code="500">Internal Server Error - An error occurred while processing the request.</response>
         [HttpPost]
         public async Task<ActionResult<Book>> CreateBook(Book book)
         {
@@ -180,8 +249,19 @@ namespace BookstoreApi.Controllers
 
         // ***************************
 
-
+        /// <summary>
+        /// Updates an existing book.
+        /// </summary>
+        /// <param name="id">The unique identifier of the book to be updated.</param>
+        /// <param name="updateModel">The model containing updated book data. Fields not provided will not be updated.</param>
+        /// <returns>A response indicating the result of the update operation.</returns>
         [HttpPut("{id}")]
+        [ProducesResponseType(typeof(void), StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ApiExplorerSettings(GroupName = "v1")]
+        /// <param name="id">The unique identifier of the book to be updated.</param>
+        /// <param name="updateModel">The model containing updated book data.</param>
         public async Task<IActionResult> UpdateBook(int id, [FromBody] BookUpdateModel updateModel)
         {
             if (updateModel == null)
