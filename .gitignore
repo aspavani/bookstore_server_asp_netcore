@@ -1,0 +1,14 @@
+*.dll
+[Bb]in/
+[Oo]bj/
+
+TestResults
+
+*.suo
+*.user
+*.sln.docstates
+
+*.obj
+*.pdb
+*.Cache
+
