@@ -268,14 +268,20 @@ namespace BookstoreApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAuthor(int id, [FromForm] AuthorUpdateModel updateModel, IFormFile? image)
         {
+            _logger.LogError("HERE1");
             if (updateModel == null)
             {
+                _logger.LogError("HERE2");
+
                 return BadRequest("Author data is null.");
             }
 
             // Check if the ID from the route matches the ID in the update data
             if (id != updateModel.author_id)
+
             {
+                _logger.LogError("HERE3");
+
                 return BadRequest("ID in the URL does not match the ID in the update data.");
             }
 
@@ -296,8 +302,12 @@ namespace BookstoreApi.Controllers
             {
                 existingAuthor.author_name = updateModel.author_name;
             }
+            _logger.LogError("HERE4");
+
             if (image != null && image.Length > 0)
             {
+                _logger.LogError("HERE5");
+
                 // Process the new image
                 var fileName = Path.GetFileName(image.FileName);
                 var filePath = Path.Combine("wwwroot", "images", fileName);
